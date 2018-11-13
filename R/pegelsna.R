@@ -14,6 +14,8 @@ pegelsna <- function (x, upper = c(alpha = 0.3, beta = 0.2, phi = 0.99),
         return(1e+09)
         if (any(alpha < lower[1:2]))
         return(1e+09)
+        if (alpha[1] < alpha[2]) #beta <= alpha
+        return(1e+09)
         theta1 <- alpha[1] + alpha[1] * alpha[2] - 2
         theta2 <- 1 - alpha[1]
         fit <- Arima(x, order = c(0, 2, 2), fixed = c(theta1,
@@ -35,6 +37,21 @@ pegelsna <- function (x, upper = c(alpha = 0.3, beta = 0.2, phi = 0.99),
         return(fit$sigma2)
     }
     
+    grid_search <- function(f, lower, upper, ngrid = 25){
+      if(length(lower) != length(upper))
+        stop("upper and lower must be of equal length!")
+      
+      axes = list()
+      for(i in 1:length(upper)) 
+        axes[[i]] <- seq(from=lower[i], to=upper[i], length=ngrid)
+      names(axes) <- names(lower)
+      
+      grid <- do.call(expand.grid, axes)
+      
+      f_values <- apply(grid, 1, f)
+      
+      return(unlist(grid[which.min(f_values),]))
+    }
     n <- length(x)
     
     if (model == "AZN") {
@@ -60,7 +77,10 @@ pegelsna <- function (x, upper = c(alpha = 0.3, beta = 0.2, phi = 0.99),
         method <- "Robust SES"
     }
     else if (best == "AAN") {
-        fit2 <- nlm(MSE2, (upper[1:2] + lower[1:2]) / 2, x = x)
+      # use grid search
+        fit2_coarse <- grid_search(function(alpha) MSE2(alpha, x), lower[1:2], upper[1:2])
+        fit2 <- nlm(MSE2, fit2_coarse, x = x)
+        #fit2 <- nlm(MSE2, (upper[1:2] + lower[1:2]) / 2, x = x)
         theta1 <- fit2$estimate[1] + fit2$estimate[1] * fit2$estimate[2] -
         2
         theta2 <- 1 - fit2$estimate[1]

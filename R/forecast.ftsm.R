@@ -78,7 +78,7 @@ forecast.ftsm <- function (object, h = 10, method = c("ets", "arima", "ar", "ets
       else stop("Length of model does not match number of coefficients")
       
       for (i in 1:nb) {
-        barima <-  pegelsna(xx[, i], model = model[i])
+        barima <-  pegelsna(xx[, i], model = model[i], ...)
         fitted[,i] <- fitted(barima)
         pred <- forecast(barima,h=h,level=level)
         fmodels[[i]] <- pred
